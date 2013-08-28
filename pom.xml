@@ -4,7 +4,7 @@
 
     <groupId>mg.mavenix</groupId>
     <artifactId>tanameteo</artifactId>
-    <version>1.1</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
 
     <name>MeteoTana</name>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.twitter4j</groupId>
             <artifactId>twitter4j-core</artifactId>
-            <version>[2.2,)</version>
+            <version>[3.0,)</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
