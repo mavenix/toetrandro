@@ -25,6 +25,8 @@ import twitter4j.conf.ConfigurationBuilder;
  */
 public class App {
 
+    private static final Logger LOGGER = Logger.getLogger(App.class.getName());
+
     public static void main(String[] args) {
 
         String consumerKey = "xxxxxxxxxxxxxxxxxxxxxxx";
@@ -44,27 +46,26 @@ public class App {
         Twitter twitter = tf.getInstance();
 
         String url = "http://api.wunderground.com/api/"+wuKey+"/geolookup/conditions/forecast/lang:FR/q/MG/Antananarivo.json";
-        InputStream in = null;
         InputStream icon = null;
         JSONParser parser = new JSONParser();
 
-        try {
-            in = new URL(url).openStream();
+        try(InputStream in = new URL(url).openStream()) {
+
             try {
                 Object obj = parser.parse(IOUtils.toString(in));
                 JSONObject jsonObject = (JSONObject) obj;
 
-                JSONObject o1 = (JSONObject) jsonObject.get("forecast");
-                JSONObject o2 = (JSONObject) o1.get("simpleforecast");
-                JSONArray o3 = (JSONArray) o2.get("forecastday");
+                JSONObject forecast = (JSONObject) jsonObject.get("forecast");
+                JSONObject simpleforecast = (JSONObject) forecast.get("simpleforecast");
+                JSONArray forecastday = (JSONArray) simpleforecast.get("forecastday");
 
                 Long period;
 
-                Iterator<JSONObject> iter = o3.iterator();
+                Iterator<JSONObject> iter = forecastday.iterator();
                 while (iter.hasNext()) {
-                    o1 = iter.next();
+                    forecast = iter.next();
 
-                    period = (Long) o1.get("period");
+                    period = (Long) forecast.get("period");
                     //on ne prend que celui de demain
                     if (period.intValue() != 2) {
                         continue;
@@ -73,7 +74,7 @@ public class App {
                     StringBuilder text = new StringBuilder();
 
                     //date
-                    JSONObject date = (JSONObject) o1.get("date");                    
+                    JSONObject date = (JSONObject) forecast.get("date");
                     text.append(date.get("day"));
                     text.append(".");
                     text.append(date.get("month"));
@@ -82,33 +83,33 @@ public class App {
                     text.append(": ");
 
                     //condition
-                    text.append((String) o1.get("conditions"));
+                    text.append((String) forecast.get("conditions"));
                     text.append("; ");
 
                     //temp
-                    JSONObject low = (JSONObject) o1.get("low");
+                    JSONObject low = (JSONObject) forecast.get("low");
                     text.append((String) low.get("celsius"));
 
                     text.append("°C à ");
 
-                    JSONObject high = (JSONObject) o1.get("high");
+                    JSONObject high = (JSONObject) forecast.get("high");
                     text.append((String) high.get("celsius"));
                     text.append("°C;");
 
                     //PoP
                     text.append(" PoP: ");
-                    text.append(o1.get("pop"));
+                    text.append(forecast.get("pop"));
                     text.append("%;");
 
                     //Vents
                     text.append(" Vent: ~");
-                    JSONObject wind = (JSONObject) o1.get("avewind");
+                    JSONObject wind = (JSONObject) forecast.get("avewind");
                     text.append(wind.get("kph"));
                     text.append("km/h;");
 
                     //Humidity
                     text.append(" Humidité: ~");
-                    text.append(o1.get("avehumidity"));
+                    text.append(forecast.get("avehumidity"));
                     text.append("%");
                     
                     //hashtags
@@ -118,34 +119,24 @@ public class App {
                         text.append(" #weather");
                     }
 
-                    System.out.println(text.toString());
+                    LOGGER.info(text.toString());
 
-                    String icon_url = (String) o1.get("icon_url");
+                    String icon_url = (String) forecast.get("icon_url");
                     icon = new URL(icon_url).openStream();
                     twitter.updateProfileImage(icon);              
                     Status status = twitter.updateStatus(text.toString());
                     break;
                 }
 
-            } catch (TwitterException ex) {
-                Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (ParseException ex) {
-                Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (TwitterException | ParseException ex) {
+                LOGGER.log(Level.SEVERE, ex.getMessage());
             } finally {
                 IOUtils.closeQuietly(in);
                 IOUtils.closeQuietly(icon);
             }
 
-
         } catch (IOException ex) {
-            Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
-
-        } finally {
-            try {
-                in.close();
-            } catch (IOException ex) {
-                Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            LOGGER.log(Level.SEVERE, ex.getMessage());
         }
 
     }
